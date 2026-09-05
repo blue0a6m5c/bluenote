@@ -4,6 +4,8 @@ import (
 	"regexp"
 	"testing"
 	"time"
+
+	"github.com/writefreely/writefreely/internal/version"
 )
 
 func TestUpdatesRoundTrip(t *testing.T) {
@@ -18,8 +20,9 @@ func TestUpdatesRoundTrip(t *testing.T) {
 			t.Fatalf("Got cache expiry frequency: %s but expected: %s", cache.frequency, defaultUpdatesCacheTime)
 		}
 
-		if cache.currentVersion != "v"+softwareVer {
-			t.Fatalf("Got current version: %s but expected: %s", cache.currentVersion, "v"+softwareVer)
+		expectedVersion := "v" + version.UpstreamVersion
+		if cache.currentVersion != expectedVersion {
+			t.Fatalf("Got current version: %s but expected: %s", cache.currentVersion, expectedVersion)
 		}
 	})
 

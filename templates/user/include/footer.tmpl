@@ -14,9 +14,9 @@
 			{{if not .SingleUser}}<a href="/contact">contact</a>{{end}}
 			{{if not .SingleUser}}<a href="/privacy">privacy</a>{{end}}
       {{if .WFModesty}}
-			<p style="font-size: 0.9em">powered by <a href="https://writefreely.org">writefreely</a></p>
+			<p style="font-size: 0.9em">{{template "branding" .}}</p>
 			{{else}}
-			<a href="https://writefreely.org">writefreely {{.Version}}</a>
+			{{template "branding" .}}
 			{{end}}
 		</nav>
 	</footer>

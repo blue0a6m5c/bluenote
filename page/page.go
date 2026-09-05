@@ -20,9 +20,12 @@ import (
 type StaticPage struct {
 	// App configuration
 	config.AppCfg
-	Version   string
-	HeaderNav bool
-	CustomCSS bool
+	Version           string
+	BlueNoteVersion   string
+	BlueNoteSourceURL string
+	Revision          string
+	HeaderNav         bool
+	CustomCSS         bool
 
 	// Request values
 	Path            string

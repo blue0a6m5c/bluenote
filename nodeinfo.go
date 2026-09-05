@@ -16,6 +16,7 @@ import (
 	"github.com/writeas/web-core/log"
 	"github.com/writefreely/go-nodeinfo"
 	"github.com/writefreely/writefreely/config"
+	"github.com/writefreely/writefreely/internal/version"
 )
 
 type nodeInfoResolver struct {
@@ -45,9 +46,8 @@ func nodeInfoConfig(db *datastore, cfg *config.Config) *nodeinfo.Config {
 			NodeDescription: desc,
 			Private:         cfg.App.Private,
 			Software: nodeinfo.SoftwareMeta{
-				HomePage: softwareURL,
-				GitHub:   "https://github.com/writefreely/writefreely",
-				Follow:   "https://writing.exchange/@writefreely",
+				HomePage: version.SourceURL,
+				GitHub:   version.SourceURL,
 			},
 			MaxBlogs:     cfg.App.MaxBlogs,
 			PublicReader: cfg.App.LocalTimeline,
@@ -64,7 +64,7 @@ func nodeInfoConfig(db *datastore, cfg *config.Config) *nodeinfo.Config {
 		},
 		Software: nodeinfo.SoftwareInfo{
 			Name:    strings.ToLower(serverSoftware),
-			Version: softwareVer,
+			Version: version.CompatibilityVersion(),
 		},
 	}
 }

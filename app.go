@@ -41,6 +41,7 @@ import (
 
 	"github.com/writefreely/writefreely/author"
 	"github.com/writefreely/writefreely/config"
+	"github.com/writefreely/writefreely/internal/version"
 	"github.com/writefreely/writefreely/key"
 	"github.com/writefreely/writefreely/migrations"
 	"github.com/writefreely/writefreely/page"
@@ -52,15 +53,11 @@ const (
 	postsPerPage     = 10
 	postsPerArchPage = 40
 
-	serverSoftware = "WriteFreely"
-	softwareURL    = "https://writefreely.org"
+	serverSoftware = version.UpstreamName
 )
 
 var (
 	debugging bool
-
-	// Software version can be set from git env using -ldflags
-	softwareVer = "0.17.2"
 
 	// DEPRECATED VARS
 	isSingleUser bool
@@ -361,9 +358,12 @@ func handleTemplatedPage(app *App, w http.ResponseWriter, r *http.Request, t *te
 
 func pageForReq(app *App, r *http.Request) page.StaticPage {
 	p := page.StaticPage{
-		AppCfg:  app.cfg.App,
-		Path:    r.URL.Path,
-		Version: "v" + softwareVer,
+		AppCfg:            app.cfg.App,
+		Path:              r.URL.Path,
+		Version:           "v" + version.UpstreamVersion,
+		BlueNoteVersion:   version.BlueNoteVersion,
+		BlueNoteSourceURL: version.SourceURL,
+		Revision:          version.Revision,
 	}
 
 	// Use custom style, if file exists
@@ -622,7 +622,7 @@ func ConnectToDatabase(app *App) error {
 
 // FormatVersion constructs the version string for the application
 func FormatVersion() string {
-	return serverSoftware + " " + softwareVer
+	return version.CLI()
 }
 
 // OutputVersion prints out the version of the application.
@@ -1133,5 +1133,5 @@ func ServerUserAgent(hostName string) string {
 	if hostName != "" {
 		hostUAStr = "; +" + hostName
 	}
-	return "Go (" + serverSoftware + "/" + softwareVer + hostUAStr + ")"
+	return "Go (" + serverSoftware + "/" + version.CompatibilityVersion() + hostUAStr + ")"
 }
