@@ -56,7 +56,7 @@
 		
 		<article class="{{.Font}} h-entry">{{if .Title}}<h2 id="title" class="p-name">{{.Title}}</h2>{{end}}{{ if .IsPlainText }}<p id="post-body" class="e-content">{{.Content}}</p>{{ else }}<div id="post-body" class="e-content">{{.HTMLContent}}</div>{{ end }}</article>
 
-		<footer dir="ltr"><hr><nav><p style="font-size: 0.9em">{{localhtml "published with write.as" .Language}}</p></nav></footer>
+		<footer dir="ltr"><hr><nav><p style="font-size: 0.9em">{{template "branding" .}}</p></nav></footer>
 	</body>
 	
 	{{if .IsCode}}

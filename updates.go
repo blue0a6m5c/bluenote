@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/writeas/web-core/log"
+	"github.com/writefreely/writefreely/internal/version"
 )
 
 // updatesCacheTime is the default interval between cache updates for new
@@ -99,7 +100,7 @@ func wfReleaseNotesURL(v string) string {
 func newUpdatesCache(expiry time.Duration) *updatesCache {
 	cache := updatesCache{
 		frequency:      expiry,
-		currentVersion: "v" + softwareVer,
+		currentVersion: "v" + version.UpstreamVersion,
 	}
 	go cache.CheckNow()
 	return &cache

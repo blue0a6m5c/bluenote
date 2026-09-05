@@ -10,12 +10,12 @@
 					{{if .Username}}<a href="https://writefreely.org/guide/{{.OfficialVersion}}" target="guide">writer's guide</a>{{end}}
 					<a href="/contact">contact</a>
 					<a href="/privacy">privacy</a>
-					<p style="font-size: 0.9em">powered by <a href="https://writefreely.org">writefreely</a></p>
+					<p style="font-size: 0.9em">{{template "branding" .}}</p>
 				{{else}}
 					<a href="https://writefreely.org/guide/{{.OfficialVersion}}" target="guide">writer's guide</a>
 					<a href="https://developers.write.as/" title="Build on WriteFreely with our open developer API.">developers</a>
-					<a href="https://github.com/writefreely/writefreely">source code</a>
-					<a href="https://writefreely.org">writefreely {{.Version}}</a>
+					<a href="https://github.com/writefreely/writefreely">upstream source code</a>
+					{{template "branding" .}}
 				{{end}}
 			</nav>
 			{{else}}
@@ -35,8 +35,8 @@
 						<ul>
 							<li><a href="https://writefreely.org/guide/{{.OfficialVersion}}" target="guide">writer's guide</a></li>
 							<li><a href="https://developers.write.as/" title="Build on WriteFreely with our open developer API.">developers</a></li>
-							<li><a href="https://github.com/writefreely/writefreely">source code</a></li>
-							<li style="margin-top:0.8em">{{.Version}}</li>
+							<li><a href="https://github.com/writefreely/writefreely">upstream source code</a></li>
+							<li style="margin-top:0.8em">{{template "branding" .}}</li>
 						</ul>
 					</div>
 				</div>

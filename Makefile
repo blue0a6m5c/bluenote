@@ -1,6 +1,7 @@
 GITREV=`git describe | cut -c 2-`
-LDFLAGS=-ldflags="-s -w -X 'github.com/writefreely/writefreely.softwareVer=$(GITREV)' -extldflags '-static'"
-BASELDFLAGS=-ldflags="-s -w -X 'github.com/writefreely/writefreely.softwareVer=$(GITREV)'"
+REVISION=$(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
+LDFLAGS=-ldflags="-s -w -X 'github.com/writefreely/writefreely/internal/version.Revision=$(REVISION)' -extldflags '-static'"
+BASELDFLAGS=-ldflags="-s -w -X 'github.com/writefreely/writefreely/internal/version.Revision=$(REVISION)'"
 
 GOCMD=go
 GOINSTALL=$(GOCMD) install $(LDFLAGS)
