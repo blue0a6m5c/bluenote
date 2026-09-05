@@ -1,99 +1,58 @@
-# Contributing to WriteFreely
+# Contributing to BlueNote
 
-Welcome! We're glad you're interested in contributing to WriteFreely.
+Thank you for helping improve BlueNote. This project is an early-stage fork of [WriteFreely](https://github.com/writefreely/writefreely), so contributions should keep the fork maintainable and make intentional differences from upstream easy to identify.
 
-For **questions**, **help**, **feature requests**, and **general discussion**, please use [our forum](https://discuss.write.as).
+Use [BlueNote issues](https://github.com/blue0a6m5c/bluenote/issues) for reproducible bugs and feature proposals. Before reporting a security issue, follow [SECURITY.md](SECURITY.md) and do not disclose vulnerability details in a public issue.
 
-For **bug reports**, please [open a GitHub issue](https://github.com/writefreely/writefreely/issues/new). See our guide on [submitting bug reports](https://writefreely.org/contribute#bugs).
+## Before starting
 
-## Getting Started
+- Search existing issues and pull requests for related work.
+- For a substantial feature or behavior change, open an issue first so its scope and upstream compatibility can be discussed.
+- Check whether the behavior also occurs in upstream WriteFreely v0.17.2 when practical. Include that result in the issue or pull request.
+- Keep each pull request focused on one complete change.
 
-There are many ways to contribute to WriteFreely, from code to documentation, to translations, to help in the community!
+BlueNote does not currently require a contributor license agreement. Contributions submitted to this repository are made under the repository's [GNU AGPLv3 license](LICENSE). Contributions sent to upstream WriteFreely are governed by [WriteFreely's own contribution process](https://github.com/writefreely/writefreely/blob/develop/CONTRIBUTING.md), including any upstream CLA requirement.
 
-See our [Contributing Guide](https://writefreely.org/contribute) on WriteFreely.org for ways to contribute without writing code. Otherwise, please read on.
+## Branches and commits
 
-## Working on WriteFreely
+Create work branches from `bluenote`, and open BlueNote pull requests with `bluenote` as the base branch. Use a short prefix that describes the change:
 
-First, you'll want to clone the WriteFreely repo, install development dependencies, and build the application from source. Learn how to do this in our [Development Setup](https://writefreely.org/docs/latest/developer/setup) guide.
+- `feat/` for features
+- `fix/` for bug fixes
+- `docs/` for documentation
+- `test/` for test-only changes
+- `chore/` for maintenance
 
-### Starting development
+Branches used to integrate upstream should use the `sync/` prefix. Do not mix upstream synchronization with unrelated BlueNote changes.
 
-Next, [join our forum](https://discuss.write.as) so you can discuss development with the team. Then take a look at [our roadmap on Phabricator](https://todo.musing.studio/tag/writefreely/) to see where the project is today and where it's headed.
+Use [Conventional Commits](https://www.conventionalcommits.org/) for commit messages, such as `feat: add an optional publishing mode`, `fix: stop an empty collection page`, or `docs: clarify local setup`.
 
-When you find something you want to work on, start a new topic on the forum or jump into an existing discussion, if there is one. The team will respond and continue the conversation there.
+## Code and documentation
 
-Lastly, **before submitting any code**, please sign our [contributor's agreement](https://todo.musing.studio/L1) so we can accept your contributions. It is substantially similar to the _Apache Individual Contributor License Agreement_. If you'd like to know about the rationale behind this requirement, you can [read more about that here](https://todo.musing.studio/w/writefreely/cla/).
+- Follow the style already used in the surrounding code.
+- Format changed Go files with `gofmt`.
+- Avoid new dependencies unless they provide a clear benefit.
+- Add focused tests for fixes and behavior changes.
+- Document new configuration, migrations, and user-visible compatibility differences.
+- Preserve default WriteFreely behavior unless a BlueNote difference is deliberate and documented.
 
-### Branching
+## Testing
 
-All stable work lives on the `master` branch. We merge into it only when creating a release. Releases are tagged using semantic versioning.
+Run the tests relevant to your change. The focused BlueNote regression tests can be run with:
 
-While developing, we primarily work from the `develop` branch, creating _feature branches_ off of it for new features and fixes. When starting a new feature or fix, you should also create a new branch off of `develop`.
+```sh
+go test -mod=readonly ./config
+go test -mod=readonly -vet=off -tags sqlite -run TestBlueNote -count=1 .
+```
 
-#### Branch naming
+When your environment supports it, also run the broader suite:
 
-For fixes and modifications to existing behavior, branch names should follow a similar pattern to commit messages (see below), such as `fix-post-rendering` or `update-documentation`. You can optionally append a task number, e.g. `fix-post-rendering-T000`.
+```sh
+go test -mod=readonly -vet=off -tags sqlite ./...
+```
 
-For new features, branches can be named after the new feature, e.g. `activitypub-mentions` or `import-zip`.
+The upstream-derived suite may contain failures unrelated to a proposed change. Report any such failures with the package, test name, and output; do not hide or silently change them as part of unrelated work.
 
-#### Pull request scope
+## Pull requests
 
-The scope of work on each branch should be as small as possible -- one complete feature, one complete change, or one complete fix. This makes it easier for us to review and accept.
-
-### Writing code
-
-We value reliable, readable, and maintainable code over all else in our work. To help you write that kind of code, we offer a few guiding principles, as well as a few concrete guidelines.
-
-#### Guiding principles
-
-* Write code for other humans, not computers.
-* The less complexity, the better. The more someone can understand code just by looking at it, the better.
-* Functionality, readability, and maintainability over senseless elegance.
-* Only abstract when necessary.
-* Keep an eye to the future, but don't pre-optimize at the expense of today's simplicity.
-
-#### Code guidelines
-
-* Format all Go code with `go fmt` before committing (**important!**)
-* Follow whitespace conventions established within the project (tabs vs. spaces)
-* Add comments to exported Go functions and variables
-* Follow Go naming conventions, like using [`mixedCaps`](https://golang.org/doc/effective_go.html#mixed-caps)
-* Avoid new dependencies unless absolutely necessary
-
-### Commit messages
-
-We highly value commit messages that follow established form within the project. Generally speaking, we follow the practices [outlined](https://git-scm.com/book/en/v2/Distributed-Git-Contributing-to-a-Project#_commit_guidelines) in the Pro Git Book. A good commit message will look like the following:
-
-* **Line 1**: A short summary written in the present imperative tense. For example:
-  * ✔️ **Good**: "Fix post rendering bug"
-  * ❌ No: ~~"Fixes post rendering bug"~~
-  * ❌ No: ~~"Fixing post rendering bug"~~
-  * ❌ No: ~~"Fixed post rendering bug"~~
-  * ❌ No: ~~"Post rendering bug is fixed now"~~
-* **Line 2**: _[left blank]_
-* **Line 3**: An added description of what changed, any rationale, etc. -- if necessary
-* **Last line**: A mention of any applicable task or issue
-  * For Phabricator tasks: `Ref T000` or `Closes T000`
-  * For GitHub issues: `Ref #000` or `Fixes #000`
-
-#### Good examples
-
-When in doubt, look to our existing git history for examples of good commit messages. Here are a few:
-
-* [Rename Suspend status to Silence](https://github.com/writefreely/writefreely/commit/7e014ca65958750ab703e317b1ce8cfc4aad2d6e)
-* [Show 404 when remote user not found](https://github.com/writefreely/writefreely/commit/867eb53b3596bd7b3f2be3c53a3faf857f4cd36d)
-* [Fix post deletion on Pleroma](https://github.com/writefreely/writefreely/commit/fe82cbb96e3d5c57cfde0db76c28c4ea6dabfe50)
-
-### Submitting pull requests
-
-Like our GitHub issues, we aim to keep our number of open pull requests to a minimum. You can follow a few guidelines to ensure changes are merged quickly.
-
-First, make sure your changes follow the established practices and good form outlined in this guide. This is crucial to our project, and ignoring our practices can delay otherwise important fixes.
-
-Beyond that, we prioritize pull requests in this order:
-
-1. Fixes to open GitHub issues
-2. Superficial changes and improvements that don't adversely impact users
-3. New features and changes that have been discussed before with the team
-
-Any pull requests that haven't previously been discussed with the team may be extensively delayed or closed, especially if they require a wider consideration before integrating into the project. When in doubt, please reach out [on the forum](https://discuss.write.as) before submitting a pull request.
+In the pull request, explain the problem, the resulting behavior, and how you tested it. Call out configuration or database changes and any difference from upstream WriteFreely. Update documentation in the same pull request when users or administrators need to take action.

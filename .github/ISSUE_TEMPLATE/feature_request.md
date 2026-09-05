@@ -1,9 +1,27 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
-
+about: Propose an improvement for BlueNote
+title: ""
+labels: ""
+assignees: ""
 ---
 
-# PLEASE DON'T SUBMIT FEATURE REQUESTS HERE #
+## Problem or use case
 
-Instead, post them to our forums: https://discuss.write.as/c/feedback/feature-requests
+Describe the need this feature would address.
+
+## Proposed behavior
+
+Describe how the feature should work, including its expected default behavior.
+
+## Upstream relationship
+
+Explain whether WriteFreely already supports or discusses this feature. Link any relevant upstream issue or documentation.
+
+## Compatibility and operation
+
+Describe any configuration, migration, federation, API, or deployment impact you expect.
+
+## Alternatives
+
+Describe other approaches or workarounds you considered.

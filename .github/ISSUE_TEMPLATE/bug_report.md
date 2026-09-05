@@ -1,25 +1,44 @@
 ---
 name: Bug report
-about: Let us know what went wrong.
-labels: ❓ bug
+about: Report reproducible incorrect behavior in BlueNote
+title: ""
+labels: ""
+assignees: ""
 ---
 
-### Describe the bug
-Explain what the bug is, in as much detail as possible...
+<!-- Do not report security vulnerabilities here. Follow SECURITY.md instead. -->
 
-### Steps to reproduce (if necessary)
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. ...
+## Description
 
-### Expected behavior
-What should've happened?
+Describe the problem and its impact.
 
-### Application configuration
- - **Single mode or Multi-user mode?** 
- - **Database?** [mysql/sqlite]
- - **Open registration?** [yes/no]
- - **Federation enabled?** [yes/no]
+## Steps to reproduce
 
-**Version or last commit**:
+1.
+2.
+3.
+
+## Expected behavior
+
+Describe what you expected to happen.
+
+## Actual behavior
+
+Describe what happened. Include relevant logs with secrets and personal data removed.
+
+## Environment
+
+- BlueNote version, commit, or branch:
+- Operating system and architecture:
+- Single-user or multi-user mode:
+- Database (SQLite, MySQL, or MariaDB) and version:
+- Federation enabled:
+- Relevant configuration:
+
+## Upstream comparison
+
+If practical, does the same behavior occur on WriteFreely v0.17.2? Include any related upstream issue.
+
+## Additional context
+
+Add any other details that help reproduce or diagnose the issue.
