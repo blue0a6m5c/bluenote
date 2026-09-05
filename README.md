@@ -1,87 +1,52 @@
-&nbsp;
-<p align="center">
-	<a href="https://writefreely.org"><img src="https://writefreely.org/img/writefreely.svg" width="350px" alt="WriteFreely" /></a>
-</p>
-<hr />
-<p align="center">
-	<a href="https://github.com/writefreely/writefreely/releases/">
-		<img src="https://img.shields.io/github/release/writefreely/writefreely.svg" alt="Latest release" />
-	</a>
-	<a href="https://github.com/writefreely/writefreely/releases/latest">
-		<img src="https://img.shields.io/github/downloads/writefreely/writefreely/total.svg" />
-	</a>
-	<a href="https://ghcr.io/writefreely/writefreely">
-		<img src="https://img.shields.io/badge/docker-%230db7ed.svg?logo=docker&logoColor=white" />
-	</a>
-	<a href="https://github.com/writefreely/writefreely/actions/workflows/docker-publish.yml">
-		<img src="https://github.com/writefreely/writefreely/actions/workflows/docker-publish.yml/badge.svg" alt="Build container image, publish as GitHub-package" />
-	</a>
-</p>
-&nbsp;
+# BlueNote
 
-WriteFreely is a clean, minimalist publishing platform made for writers. Start a blog, share knowledge within your organization, or build a community around the shared act of writing.
+BlueNote is an unofficial, early-stage fork of [WriteFreely](https://github.com/writefreely/writefreely), a minimalist and federated publishing platform. It is currently based on [WriteFreely v0.17.2](https://github.com/writefreely/writefreely/releases/tag/v0.17.2).
 
-![Screenshot of the Reader view of a WriteFreely instance, pen.writefree.ly.](https://files.writefreely.org/img/screens/pen-reader.png)
+BlueNote adds a small set of features and fixes while aiming to remain compatible with upstream WriteFreely. It is independently maintained and is not affiliated with or endorsed by WriteFreely or [Musing Studio](https://musing.studio).
 
-[Try the writing experience](https://write.as/new)
+> [!CAUTION]
+> BlueNote is in early development. There are no stable BlueNote releases or pre-built binaries yet. Review changes carefully before using it in production.
 
-[Find an instance](https://writefreely.org/instances)
+## BlueNote changes
 
-## Features
+Compared with the v0.17.2 upstream base, BlueNote currently includes:
 
-### Made for writing
+- Configurable datetime-based post slugs generated from a post's saved publication time, with an IANA timezone setting and UTC as the default. The feature is disabled by default to preserve WriteFreely behavior. See [Datetime slugs](docs/datetime-slugs.md).
+- UTC serialization for post creation and update timestamps emitted in ISO 8601 format.
+- Plain-text `summary` values for ActivityPub `Article` objects.
+- Correct termination of empty ActivityPub followers and following collection pages.
 
-Built on a plain, auto-saving editor, WriteFreely gives you a distraction-free writing environment. Once published, your words are front and center, and easy to read.
+These changes have regression coverage so that future upstream updates can be evaluated against BlueNote's behavior.
 
-### A connected community
+## About WriteFreely
 
-Start writing together, publicly or privately. Connect with other communities, whether running WriteFreely, [Plume](https://joinplu.me/), or other ActivityPub-powered software. And bring members on board from your existing platforms, thanks to our OAuth 2.0 support.
+WriteFreely provides a focused writing experience for individual blogs and multi-user communities. It supports ActivityPub federation, multiple blogs per account, OAuth 2.0, hashtags, pinned pages, and SQLite or MySQL/MariaDB storage.
 
-### Intuitive organization
-
-Categorize articles [with hashtags](https://writefreely.org/docs/latest/writer/hashtags), and create static pages from normal posts by [_pinning_ them](https://writefreely.org/docs/latest/writer/static) to your blog. Create draft posts and publish to multiple blogs from one account.
-
-### International
-
-Blog elements are localized in 20+ languages, and WriteFreely includes first-class support for non-Latin and right-to-left (RTL) script languages.
-
-### Private by default
-
-WriteFreely collects minimal data, and never publicizes more than a writer consents to. Writers can seamlessly create multiple blogs from a single account for different pen names or purposes without publicly revealing their association.
-
-<h2><a href="https://write.as/writefreely"><img src="https://writefreely.org/img/writeas-readme.png" height="32px" alt="Write.as" /></a></h2>
-
-The quickest way to deploy WriteFreely is with [Write.as](https://write.as/writefreely), a hosted service from the team behind WriteFreely. You'll get fully-managed installation, backup, upgrades, and maintenance — and directly fund our free software work ❤️
-
-[**Learn more on Write.as**](https://write.as/writefreely).
-
-## Quick start
-
-WriteFreely deploys as a static binary on any platform and architecture that Go supports. Just use our built-in SQLite support, or add a MySQL or MariaDB database, and you'll be up and running!
-
-For common platforms, start with our [pre-built binaries](https://github.com/writefreely/writefreely/releases/) and head over to our [installation guide](https://writefreely.org/start) to get started.
-
-### Packages
-
-You can also find WriteFreely in these package repositories, thanks to our wonderful community!
-
-* [Arch User Repository](https://aur.archlinux.org/packages/writefreely/)
-* [Nanos Repository](https://repo.ops.city/v2/packages/eyberg/writefreely/show)
-
-## Documentation
-
-Read our full [documentation on WriteFreely.org](https://writefreely.org/docs) &mdash;️ and help us improve by contributing to the [writefreely/documentation](https://github.com/writefreely/documentation) repo.
+The upstream project provides its [documentation](https://writefreely.org/docs), [installation guide](https://writefreely.org/start), and [source repository](https://github.com/writefreely/writefreely). Those resources describe WriteFreely and may differ from BlueNote where this fork has changed behavior.
 
 ## Development
 
-Start hacking on WriteFreely with our [developer setup guide](https://writefreely.org/docs/latest/developer/setup). For Docker support, see our [Docker guide](https://writefreely.org/docs/latest/admin/docker).
+BlueNote requires Go 1.25.0 or later. Clone this repository to work with the BlueNote source:
 
-## Contributing
+```sh
+git clone https://github.com/blue0a6m5c/bluenote.git
+cd bluenote
+```
 
-We gladly welcome contributions to WriteFreely, whether in the form of [code](https://github.com/writefreely/writefreely/blob/master/CONTRIBUTING.md#contributing-to-writefreely), [bug reports](https://github.com/writefreely/writefreely/issues/new?template=bug_report.md), [feature requests](https://discuss.write.as/c/feedback/feature-requests), [translations](https://poeditor.com/join/project/TIZ6HFRFdE), or [documentation](https://github.com/writefreely/documentation) improvements.
+The upstream [developer setup guide](https://writefreely.org/docs/latest/developer/setup) is a useful reference for the build process and shared development dependencies. Its `go install github.com/writefreely/writefreely/cmd/writefreely@latest` and `git clone https://github.com/writefreely/writefreely.git` commands fetch upstream WriteFreely rather than BlueNote, so do not use those commands when setting up a BlueNote checkout.
 
-Before contributing anything, please read our [Contributing Guide](https://github.com/writefreely/writefreely/blob/master/CONTRIBUTING.md#contributing-to-writefreely). It describes the correct channels for submitting contributions and any potential requirements.
+BlueNote-specific configuration is documented in this repository's [`docs`](docs) directory.
+
+Contributions are welcome through this repository. Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening an issue or pull request. Report suspected vulnerabilities according to [SECURITY.md](SECURITY.md).
+
+## Upstream and attribution
+
+BlueNote is derived from WriteFreely. Upstream development is maintained at [writefreely/writefreely](https://github.com/writefreely/writefreely). The authors inherited from the upstream project are recorded in [AUTHORS.md](AUTHORS.md), and the Git history retains the full contribution record.
+
+WriteFreely copyright © 2018-2026 [Musing Studio LLC](https://musing.studio) and contributing authors.
+
+BlueNote modifications copyright © 2026 [blue0a6m5c](https://github.com/blue0a6m5c) and BlueNote contributors.
 
 ## License
 
-Copyright © 2018-2026 [Musing Studio LLC](https://musing.studio) and contributing authors. Licensed under the [AGPL](https://github.com/writefreely/writefreely/blob/develop/LICENSE).
+BlueNote is free software licensed under the [GNU Affero General Public License, version 3](LICENSE), consistent with the upstream WriteFreely project.
