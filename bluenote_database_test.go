@@ -75,3 +75,38 @@ func TestBlueNoteEmptyActivityPages(t *testing.T) {
 		}
 	}
 }
+
+func TestPrivateCollectionsAreNotExposedThroughActivityPub(t *testing.T) {
+	for _, visibility := range []struct {
+		name  string
+		value collVisibility
+	}{
+		{"private", CollPrivate},
+		{"password-protected", CollProtected},
+	} {
+		t.Run(visibility.name, func(t *testing.T) {
+			app, router := newTemplateTestApp(t, func(cfg *config.Config) { cfg.App.SingleUser = false })
+			_, coll, _ := createTemplateTestUser(t, app, "hidden")
+			if _, err := app.db.Exec("UPDATE collections SET privacy = ? WHERE id = ?", visibility.value, coll.ID); err != nil {
+				t.Fatal(err)
+			}
+
+			for _, path := range []string{
+				"/api/collections/" + coll.Alias,
+				"/api/collections/" + coll.Alias + "/outbox",
+				"/api/collections/" + coll.Alias + "/followers",
+				"/api/collections/" + coll.Alias + "/following",
+			} {
+				t.Run(path, func(t *testing.T) {
+					req := httptest.NewRequest(http.MethodGet, path, nil)
+					req.Header.Set("Accept", "application/activity+json")
+					rec := httptest.NewRecorder()
+					router.ServeHTTP(rec, req)
+					if rec.Code != http.StatusNotFound {
+						t.Fatalf("status = %d, want %d: %s", rec.Code, http.StatusNotFound, rec.Body.String())
+					}
+				})
+			}
+		})
+	}
+}

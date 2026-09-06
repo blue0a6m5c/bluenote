@@ -1,6 +1,6 @@
 # BlueNote
 
-BlueNote is an unofficial, early-stage fork of [WriteFreely](https://github.com/writefreely/writefreely), a minimalist and federated publishing platform. It is currently based on [WriteFreely v0.17.2](https://github.com/writefreely/writefreely/releases/tag/v0.17.2).
+BlueNote is an unofficial, early-stage fork of [WriteFreely](https://github.com/writefreely/writefreely), a minimalist and federated publishing platform. It is based on [WriteFreely v0.17.2](https://github.com/writefreely/writefreely/releases/tag/v0.17.2) and synchronized with upstream `develop` through [`049aa2a`](https://github.com/writefreely/writefreely/commit/049aa2a25af41d20c400f2f9794b285f7b2958ec).
 
 BlueNote adds a small set of features and fixes while aiming to remain compatible with upstream WriteFreely. It is independently maintained and is not affiliated with or endorsed by WriteFreely or [Musing Studio](https://musing.studio).
 
@@ -9,12 +9,14 @@ BlueNote adds a small set of features and fixes while aiming to remain compatibl
 
 ## BlueNote changes
 
-Compared with the v0.17.2 upstream base, BlueNote currently includes:
+Beyond the synchronized upstream code, BlueNote currently includes:
 
 - Configurable datetime-based post slugs generated from a post's saved publication time, with an IANA timezone setting and UTC as the default. The feature is disabled by default to preserve WriteFreely behavior. See [Datetime slugs](docs/datetime-slugs.md).
 - UTC serialization for post creation and update timestamps emitted in ISO 8601 format.
 - Plain-text `summary` values for ActivityPub `Article` objects.
 - Correct termination of empty ActivityPub followers and following collection pages.
+- ActivityPub Hashtag generation directly from the current post content, independent of the publishing path.
+- Separate BlueNote and upstream version identities in the CLI, NodeInfo, User-Agent, administration pages, and server-rendered footer branding.
 
 These changes have regression coverage so that future upstream updates can be evaluated against BlueNote's behavior.
 

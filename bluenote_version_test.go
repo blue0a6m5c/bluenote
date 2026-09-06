@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -50,6 +52,34 @@ func TestBlueNoteVersionIdentity(t *testing.T) {
 	}
 	if serverSoftware != "WriteFreely" {
 		t.Fatal("Server header identity changed")
+	}
+}
+
+func TestBlueNoteVersionSourceOfTruth(t *testing.T) {
+	err := filepath.WalkDir(".", func(path string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() {
+			if path != "." && (entry.Name() == ".git" || entry.Name() == "node_modules" || entry.Name() == "vendor") {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if (filepath.Ext(path) != ".go" && entry.Name() != "Makefile") || strings.HasSuffix(path, "_test.go") {
+			return nil
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if bytes.Contains(data, []byte("softwareVer")) {
+			t.Errorf("legacy softwareVer reference in %s", path)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 

@@ -4,6 +4,11 @@
 the WriteFreely upstream base, and the BlueNote source URL. Update the appropriate
 constant there when preparing a BlueNote release or integrating a new upstream base.
 
+BlueNote is based on WriteFreely v0.17.2 and is synchronized with upstream
+`develop` through commit `049aa2a25af41d20c400f2f9794b285f7b2958ec`. The
+plain upstream version remains `0.17.2` until WriteFreely publishes a newer
+release; the synchronization commit records the additional development changes.
+
 CLI output identifies both products and the build revision. The executable is still
 named `writefreely`. Plain `go build` uses `unknown` for the revision. Makefile build
 targets inject the short Git commit into `internal/version.Revision` using linker
