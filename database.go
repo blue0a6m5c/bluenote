@@ -15,7 +15,6 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -887,7 +886,8 @@ func (db *datastore) GetCollectionBy(condition string, value interface{}) (*Coll
 	c.Format = format.String
 	c.Public = c.IsPublic()
 	c.Monetization = db.GetCollectionAttribute(c.ID, "monetization_pointer")
-	c.Verification = db.GetCollectionAttribute(c.ID, "verification_link")
+	c.VerificationLinks = parseVerificationLinks(db.GetCollectionAttribute(c.ID, "verification_link"))
+	c.VerificationLink = c.Verification()
 
 	c.db = db
 
@@ -933,6 +933,16 @@ func (db *datastore) UpdateCollection(app *App, c *SubmittedCollection, alias st
 		*c.Description = parse.Truncate(*c.Description, collMaxLengthDescription)
 	}
 
+	var storedVerification *string
+	if c.Verification != nil {
+		links, err := normalizeVerificationLinks(app, *c.Verification)
+		if err != nil {
+			return err
+		}
+		stored := serializeVerificationLinks(links)
+		storedVerification = &stored
+	}
+
 	q := query.NewUpdate().
 		SetStringPtr(c.Title, "title").
 		SetStringPtr(c.Description, "description").
@@ -958,7 +968,7 @@ func (db *datastore) UpdateCollection(app *App, c *SubmittedCollection, alias st
 	// WHERE values
 	q.Where("alias = ? AND owner_id = ?", alias, c.OwnerID)
 
-	if q.Updates == "" && c.Monetization == nil {
+	if q.Updates == "" && c.Monetization == nil && storedVerification == nil {
 		return ErrPostNoUpdatableVals
 	}
 
@@ -967,9 +977,13 @@ func (db *datastore) UpdateCollection(app *App, c *SubmittedCollection, alias st
 	var rowsAffected int64
 	var changed bool
 	var res sql.Result
-	err := db.QueryRow("SELECT id FROM collections WHERE alias = ?", alias).Scan(&collID)
+	err := db.QueryRow("SELECT id FROM collections WHERE alias = ? AND owner_id = ?", alias, c.OwnerID).Scan(&collID)
+	if err == sql.ErrNoRows {
+		return ErrUnauthorizedEditPost
+	}
 	if err != nil {
 		log.Error("Failed selecting from collections: %v. Some things won't work.", err)
+		return err
 	}
 
 	// Update MathJax value
@@ -991,41 +1005,13 @@ func (db *datastore) UpdateCollection(app *App, c *SubmittedCollection, alias st
 		}
 	}
 
-	// Update Verification link value
-	if c.Verification != nil {
-		skipUpdate := false
-		if *c.Verification != "" {
-			// Strip away any excess spaces
-			trimmed := strings.TrimSpace(*c.Verification)
-			if strings.HasPrefix(trimmed, "@") && strings.Count(trimmed, "@") == 2 {
-				// This looks like a fediverse handle, so resolve profile URL
-				profileURL, err := GetProfileURLFromHandle(app, trimmed)
-				if err != nil || profileURL == "" {
-					log.Error("Couldn't find user %s: %v", trimmed, err)
-					skipUpdate = true
-				} else {
-					c.Verification = &profileURL
-				}
-			} else {
-				if !strings.HasPrefix(trimmed, "http") {
-					trimmed = "https://" + trimmed
-				}
-				vu, err := url.Parse(trimmed)
-				if err != nil {
-					// Value appears invalid, so don't update
-					skipUpdate = true
-				} else {
-					s := vu.String()
-					c.Verification = &s
-				}
-			}
-		}
-		if !skipUpdate {
-			err = db.SetCollectionAttribute(collID, "verification_link", *c.Verification)
-			if err != nil {
-				log.Error("Unable to insert verification_link value: %v", err)
-				return err
-			}
+	// Update Verification link values in the existing newline-separated
+	// collection attribute, preserving legacy single-link storage.
+	if storedVerification != nil {
+		err = db.SetCollectionAttribute(collID, "verification_link", *storedVerification)
+		if err != nil {
+			log.Error("Unable to insert verification_link value: %v", err)
+			return err
 		}
 	}
 
@@ -1095,7 +1081,9 @@ func (db *datastore) UpdateCollection(app *App, c *SubmittedCollection, alias st
 		}
 	}
 
-	rowsAffected, _ = res.RowsAffected()
+	if res != nil {
+		rowsAffected, _ = res.RowsAffected()
+	}
 	if !changed || rowsAffected == 0 {
 		// Show the correct error message if nothing was updated
 		var dummy int
