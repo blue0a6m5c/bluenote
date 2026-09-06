@@ -3,9 +3,10 @@
 	{{if .Monetization -}}
 		<meta name="monetization" content="{{.DisplayMonetization}}" />
 	{{- end}}
-	{{if .Verification -}}
+	{{if .VerificationLinks -}}
 		{{if .FediverseAuthor}}<meta name="fediverse:creator" content="{{.FediverseAuthor}}">{{end}}
-		<link rel="me" href="{{.Verification}}" />
+		{{range .VerificationLinks}}<link rel="me" href="{{.}}" />
+		{{end}}
 	{{- end}}
 {{end}}
 

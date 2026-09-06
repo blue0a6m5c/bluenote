@@ -68,7 +68,11 @@ type (
 		URL         string         `json:"url,omitempty"`
 
 		Monetization string `json:"monetization_pointer,omitempty"`
-		Verification string `json:"verification_link"`
+		// VerificationLinks contains every rel="me" link in display order.
+		VerificationLinks []string `json:"verification_links"`
+		// VerificationLink preserves the former single-link JSON field for
+		// existing API clients. It contains the first verification link.
+		VerificationLink string `json:"verification_link"`
 
 		db       *datastore
 		hostName string
@@ -144,6 +148,15 @@ func (sc *SubmittedCollection) FediverseHandle() string {
 		return apCustomHandleDefault
 	}
 	return getSlug(sc.Handle, "")
+}
+
+// Verification returns the primary rel="me" identity, or an empty string.
+// The first link remains canonical for fediverse:creator compatibility.
+func (c *Collection) Verification() string {
+	if len(c.VerificationLinks) == 0 {
+		return ""
+	}
+	return c.VerificationLinks[0]
 }
 
 // collVisibility represents the visibility level for the collection.
@@ -1311,6 +1324,12 @@ func existingCollection(app *App, w http.ResponseWriter, r *http.Request) error 
 		if err != nil {
 			log.Error("Couldn't parse collection update form request: %v\n", err)
 			return ErrBadFormData
+		}
+
+		// The settings page submits one row per link. Join those rows into
+		// the existing verification_link write field used by the API and DB.
+		if rows, ok := r.PostForm["verification_link_row"]; ok {
+			r.PostForm.Set("verification_link", serializeVerificationLinks(rows))
 		}
 
 		err = app.formDecoder.Decode(&c, r.PostForm)
