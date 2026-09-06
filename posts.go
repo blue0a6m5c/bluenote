@@ -1264,7 +1264,8 @@ func (p *PublicPost) ActivityObject(app *App) *activitystreams.Object {
 			p.Language.String: string(p.HTMLContent),
 		}
 	}
-	if len(p.Tags) == 0 {
+	activityHashtags := p.extractHashtags()
+	if len(activityHashtags) == 0 {
 		o.Tag = []activitystreams.Tag{}
 	} else {
 		var tagBaseURL string
@@ -1277,7 +1278,7 @@ func (p *PublicPost) ActivityObject(app *App) *activitystreams.Object {
 				tagBaseURL = fmt.Sprintf("%s/%s/tag:", p.Collection.hostName, p.Collection.Alias)
 			}
 		}
-		for _, t := range p.Tags {
+		for _, t := range activityHashtags {
 			o.Tag = append(o.Tag, activitystreams.Tag{
 				Type: activitystreams.TagHashtag,
 				HRef: tagBaseURL + t,
@@ -1725,8 +1726,12 @@ func PostsContains(sl *[]PublicPost, s *PublicPost) bool {
 }
 
 func (p *Post) extractData() {
-	p.Tags = tags.Extract(p.Content)
+	p.Tags = p.extractHashtags()
 	p.extractImages()
+}
+
+func (p *Post) extractHashtags() []string {
+	return tags.Extract(p.Content)
 }
 
 func (p *Post) IsSans() bool {
