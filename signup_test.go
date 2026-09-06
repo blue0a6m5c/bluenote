@@ -231,6 +231,47 @@ func TestAPISignupOpenRegistrationStillWorks(t *testing.T) {
 	assert.True(t, userExists(t, app, "apisignup-open"))
 }
 
+// TestSignupDisabledPasswordAuth guards against creating a password-based
+// account when password auth is disabled.
+func TestSignupDisabledPasswordAuth(t *testing.T) {
+	newReq := func(path, alias string) (*http.Request, *httptest.ResponseRecorder) {
+		form := url.Values{}
+		form.Set("alias", alias)
+		form.Set("pass", "sup3rSecret!")
+		req := httptest.NewRequest("POST", path, strings.NewReader(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		return req, httptest.NewRecorder()
+	}
+
+	t.Run("api", func(t *testing.T) {
+		app := newSignupTestApp(t)
+		app.cfg.App.OpenRegistration = true
+		app.cfg.App.DisablePasswordAuth = true
+
+		req, w := newReq("/api/auth/signup", "pwauth-api")
+		if err := apiSignup(app, w, req); err != ErrDisabledPasswordAuth {
+			t.Fatalf("expected ErrDisabledPasswordAuth, got: %v", err)
+		}
+		assert.False(t, userExists(t, app, "pwauth-api"))
+	})
+
+	t.Run("web", func(t *testing.T) {
+		app := newSignupTestApp(t)
+		app.cfg.App.OpenRegistration = true
+		app.cfg.App.DisablePasswordAuth = true
+
+		req, w := newReq("/auth/signup", "pwauth-web")
+		// handleWebSignup converts the rejection into a flash + 302 redirect
+		// rather than returning the error verbatim, so the real signal is that
+		// no account was created.
+		err := handleWebSignup(app, w, req)
+		if httpErr, ok := err.(impart.HTTPError); !ok || httpErr.Status != http.StatusFound {
+			t.Fatalf("expected 302 redirect, got: %v", err)
+		}
+		assert.False(t, userExists(t, app, "pwauth-web"))
+	})
+}
+
 // TestInitRoutesAlwaysRegistersAPISignup guards against the routing-time
 // bypass in Finding A: /api/auth/signup used to only be registered when
 // OpenRegistration was true *at boot*, so toggling the setting off at
@@ -385,4 +426,56 @@ func TestOAuthSignupCannotSwapInviteCodeWithoutInvalidatingSignature(t *testing.
 		t.Errorf("status = %d, want %d (tampered request)", httpErr.Status, http.StatusBadRequest)
 	}
 	assert.False(t, userExists(t, app, username))
+}
+
+// TestOAuthSignupNormalizesUsername is regression coverage for #648 and #844:
+// usernames created via OAuth must be run through the same slug normalization as
+// normal registration, so the resulting collection alias is always lowercase.
+// Otherwise the blog 404s, since collection URLs are redirected to their
+// lowercase form on request but no matching (lowercase) alias exists.
+func TestOAuthSignupNormalizesUsername(t *testing.T) {
+	app := newSignupTestApp(t)
+	app.cfg.App.OpenRegistration = true
+	h := newTestOauthHandler(app)
+
+	const submitted = "MixedCaseUser"
+	const normalized = "mixedcaseuser"
+
+	tp := oauthSignupPageParams{
+		AccessToken:     "tok-mixed",
+		TokenUsername:   submitted,
+		TokenAlias:      submitted,
+		TokenRemoteUser: "remote-mixed",
+		ClientID:        "client1",
+		Provider:        "generic",
+	}
+	sig := signOauthParams(app.cfg.Server.HashSeed, tp)
+
+	form := url.Values{}
+	form.Set(oauthParamAccessToken, tp.AccessToken)
+	form.Set(oauthParamTokenUsername, tp.TokenUsername)
+	form.Set(oauthParamTokenAlias, tp.TokenAlias)
+	form.Set(oauthParamTokenRemoteUserID, tp.TokenRemoteUser)
+	form.Set(oauthParamClientID, tp.ClientID)
+	form.Set(oauthParamProvider, tp.Provider)
+	form.Set(oauthParamHash, sig)
+	form.Set(oauthParamUsername, submitted)
+
+	req := httptest.NewRequest("POST", "/oauth/signup", strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	if err := h.viewOauthSignup(app, w, req); err != nil {
+		t.Fatalf("expected oauth signup to succeed, got error: %v", err)
+	}
+
+	assert.True(t, userExists(t, app, normalized), "user should be stored with a lowercased username")
+	assert.False(t, userExists(t, app, submitted), "user should not be stored with the raw mixed-case username")
+
+	var alias string
+	err := app.db.QueryRow("SELECT alias FROM collections WHERE alias = ?", normalized).Scan(&alias)
+	if err != nil {
+		t.Fatalf("expected collection with lowercased alias %q: %v", normalized, err)
+	}
+	assert.Equal(t, normalized, alias, "collection alias must be lowercase to be reachable")
 }

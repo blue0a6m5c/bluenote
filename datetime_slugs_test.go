@@ -218,6 +218,20 @@ func TestBlueNoteSlugDefaultsAndExplicitValues(t *testing.T) {
 	if owned.Slug.String != "20020304050607" {
 		t.Fatalf("token creation slug = %q", owned.Slug.String)
 	}
+
+	// Explicit slugs retain priority over datetime slugs, while still using
+	// WriteFreely's normal slug sanitization.
+	explicit := " My Custom URL! "
+	created = "2002-03-04T05:06:07Z"
+	post, err = app.db.CreatePost(app.cfg, user.ID, coll.ID, &SubmittedPost{
+		Title: &title, Content: &content, Created: &created, Slug: &explicit,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if post.Slug.String != "my-custom-url" {
+		t.Fatalf("sanitized explicit slug = %q, want %q", post.Slug.String, "my-custom-url")
+	}
 }
 
 func TestBlueNoteAnonymousClaimDatetimeSlug(t *testing.T) {

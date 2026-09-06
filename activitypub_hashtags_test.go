@@ -2,6 +2,7 @@ package writefreely
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
@@ -18,11 +19,22 @@ type activityTagWire struct {
 }
 
 type activityObjectWire struct {
-	Type    string            `json:"type"`
-	Tag     []activityTagWire `json:"tag"`
-	Preview struct {
-		Tag []activityTagWire `json:"tag"`
+	Type       string                   `json:"type"`
+	Summary    *string                  `json:"summary"`
+	Content    string                   `json:"content"`
+	Tag        []activityTagWire        `json:"tag"`
+	Attachment []activityAttachmentWire `json:"attachment"`
+	Preview    struct {
+		Content    string                   `json:"content"`
+		Tag        []activityTagWire        `json:"tag"`
+		Attachment []activityAttachmentWire `json:"attachment"`
 	} `json:"preview"`
+}
+
+type activityAttachmentWire struct {
+	Type string `json:"type"`
+	URL  string `json:"url"`
+	Name string `json:"name"`
 }
 
 func newActivityHashtagTestPost(host, content string) *PublicPost {
@@ -250,5 +262,58 @@ func TestActivityObjectPreservesMentionTags(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("Mention tag missing after hashtag generation: %+v", tags)
+	}
+}
+
+func TestActivityArticleFeaturesCoexist(t *testing.T) {
+	app, _ := newTemplateTestApp(t, func(cfg *config.Config) {
+		cfg.App.Host = "https://example.com"
+	})
+	actor := "https://remote.example/users/alice"
+	if _, err := app.db.Exec(
+		"INSERT INTO remoteusers (actor_id, inbox, shared_inbox, url, handle) VALUES (?, ?, ?, ?, ?)",
+		actor, actor+"/inbox", "https://remote.example/inbox", actor, "alice@remote.example",
+	); err != nil {
+		t.Fatalf("insert remote user: %v", err)
+	}
+
+	imageURL := "https://example.com/sky.png"
+	post := newActivityHashtagTestPost(app.cfg.App.Host,
+		"Hello **BlueNote** @alice@remote.example #BlueNote.\n\n![A blue sky]("+imageURL+")")
+	post.extractData()
+	object := marshalActivityObject(t, post.ActivityObject(app))
+
+	if object.Type != "Article" || object.Summary == nil {
+		t.Fatalf("expected Article with summary: %+v", object)
+	}
+	if strings.Contains(*object.Summary, "<") || *object.Summary != "Hello BlueNote @alice@remote.example #BlueNote. [...]" {
+		t.Fatalf("summary = %q", *object.Summary)
+	}
+	if object.Preview.Content == "" || !strings.Contains(object.Content, "<strong>BlueNote</strong>") {
+		t.Fatalf("Article content or preview missing: %+v", object)
+	}
+	requireHashtags(t, object.Tag, map[string]string{
+		"#BlueNote": "https://example.com/blog/tag:BlueNote",
+	})
+	requireHashtags(t, object.Preview.Tag, map[string]string{
+		"#BlueNote": "https://example.com/blog/tag:BlueNote",
+	})
+
+	foundMention := false
+	for _, tag := range object.Tag {
+		if tag.Type == "Mention" && tag.Name == "@alice@remote.example" && tag.HRef == actor {
+			foundMention = true
+		}
+	}
+	if !foundMention {
+		t.Fatalf("Mention tag missing: %+v", object.Tag)
+	}
+	for location, attachments := range map[string][]activityAttachmentWire{
+		"object":  object.Attachment,
+		"preview": object.Preview.Attachment,
+	} {
+		if len(attachments) != 1 || attachments[0].Type != "Image" || attachments[0].URL != imageURL || attachments[0].Name != "A blue sky" {
+			t.Fatalf("%s attachment = %+v", location, attachments)
+		}
 	}
 }
