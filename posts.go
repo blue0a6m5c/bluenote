@@ -845,9 +845,16 @@ func existingPost(app *App, w http.ResponseWriter, r *http.Request) error {
 }
 
 func deletePost(app *App, w http.ResponseWriter, r *http.Request) error {
+	return deletePostFromCollection(app, w, r, "")
+}
+
+func deletePostFromCollection(app *App, w http.ResponseWriter, r *http.Request, expectedCollectionAlias string) error {
 	vars := mux.Vars(r)
 	friendlyID := vars["post"]
-	editToken := r.FormValue("token")
+	var editToken string
+	if expectedCollectionAlias == "" {
+		editToken = requestPostModifyToken(r)
+	}
 
 	var ownerID int64
 	var u *User
@@ -901,6 +908,9 @@ func deletePost(app *App, w http.ResponseWriter, r *http.Request) error {
 		if err != nil {
 			return err
 		}
+		if expectedCollectionAlias != "" && !collID.Valid {
+			return ErrUnauthorizedEditPost
+		}
 		if !collID.Valid {
 			// There's no collection; simply delete the post
 			res, err = app.db.Exec("DELETE FROM posts WHERE id = ? AND owner_id = ?", friendlyID, ownerID)
@@ -910,6 +920,9 @@ func deletePost(app *App, w http.ResponseWriter, r *http.Request) error {
 			if err != nil {
 				log.Error("Unable to get collection: %v", err)
 				return err
+			}
+			if expectedCollectionAlias != "" && (coll.Alias != expectedCollectionAlias || coll.OwnerID != ownerID) {
+				return ErrUnauthorizedEditPost
 			}
 			if app.cfg.App.Federation {
 				// First fetch full post for federation
@@ -927,7 +940,11 @@ func deletePost(app *App, w http.ResponseWriter, r *http.Request) error {
 				log.Error("No begin: %v", err)
 				return err
 			}
-			res, err = t.Exec("DELETE FROM posts WHERE id = ? AND owner_id = ?", friendlyID, ownerID)
+			if expectedCollectionAlias == "" {
+				res, err = t.Exec("DELETE FROM posts WHERE id = ? AND owner_id = ?", friendlyID, ownerID)
+			} else {
+				res, err = t.Exec("DELETE FROM posts WHERE id = ? AND owner_id = ? AND collection_id = ?", friendlyID, ownerID, coll.ID)
+			}
 		}
 	} else {
 		return impart.HTTPError{http.StatusBadRequest, "No authenticated user or post token given."}

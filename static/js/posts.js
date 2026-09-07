@@ -308,7 +308,7 @@ var deletePost = function(postID, token, callback) {
 			}
 		}
 	}
-	http.send();
+	BlueNoteCSRF.send(http, null);
 };
 
 var hasWritten = H.get('lastDoc', '') !== '';

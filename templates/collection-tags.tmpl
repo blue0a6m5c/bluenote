@@ -92,6 +92,7 @@
 	{{if .IsOwner}}
 	<script src="/js/h.js"></script>
 	<script src="/js/postactions.js"></script>
+	<script src="/js/csrf.js"></script>
 	{{end}}
 	<script type="text/javascript">
 {{if .IsOwner}}
@@ -140,7 +141,7 @@ var deletePost = function(postID, token, callback) {
 			}
 		}
 	}
-	http.send();
+	BlueNoteCSRF.send(http, null);
 };
 
 var pinning = false;
@@ -191,7 +192,7 @@ function pinPost(e, postID, slug, title) {
 			}
 		}
 	}
-	http.send(JSON.stringify(params));
+	BlueNoteCSRF.send(http, JSON.stringify(params));
 };
 {{end}}
 	try { // Fonts

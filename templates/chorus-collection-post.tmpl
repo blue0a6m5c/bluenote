@@ -86,6 +86,7 @@ body#post header {
 		{{if .Collection.Script}}<script type="text/javascript">{{.Collection.ScriptDisplay}}</script>{{end}}
 	{{end}}
 	<script src="/js/localdate.js"></script>
+	<script src="/js/csrf.js"></script>
 	<script type="text/javascript">
 
 var pinning = false;
@@ -126,7 +127,7 @@ function unpinPost(e, postID) {
 			}
 		}
 	}
-	http.send(JSON.stringify(params));
+	BlueNoteCSRF.send(http, JSON.stringify(params));
 };
 
 	try { // Fonts
