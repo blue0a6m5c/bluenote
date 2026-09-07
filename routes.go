@@ -11,6 +11,9 @@
 package writefreely
 
 import (
+	"bytes"
+	"io"
+	"mime"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -97,6 +100,7 @@ func InitRoutes(apper Apper, r *mux.Router) *mux.Router {
 	me.HandleFunc("/c/", handler.User(viewCollections)).Methods("GET")
 	me.HandleFunc("/c/{collection}", handler.User(viewEditCollection)).Methods("GET")
 	me.HandleFunc("/c/{collection}/stats", handler.User(viewStats)).Methods("GET")
+	me.Path("/c/{collection}/posts").Handler(csrfProtection(apper.App(), handler.User(viewManagementPosts))).Methods("GET")
 	me.HandleFunc("/c/{collection}/subscribers", handler.User(handleViewSubscribers)).Methods("GET")
 	me.Path("/delete").Handler(csrf.Protect(apper.App().keys.CSRFKey, csrf.Path("/"))(handler.User(handleUserDelete))).Methods("POST")
 	me.HandleFunc("/posts", handler.Redirect("/me/posts/", UserLevelUser)).Methods("GET")
@@ -126,6 +130,7 @@ func InitRoutes(apper Apper, r *mux.Router) *mux.Router {
 	write.HandleFunc("/api/alias", handler.All(handleUsernameCheck)).Methods("POST")
 
 	write.HandleFunc("/api/markdown", handler.All(handleRenderMarkdown)).Methods("POST")
+	write.Path("/api/csrf").Handler(csrfProtection(apper.App(), handler.All(handleCSRFToken))).Methods("GET")
 
 	instanceURL, _ := url.Parse(apper.App().Config().App.Host)
 	host := instanceURL.Host
@@ -141,11 +146,17 @@ func InitRoutes(apper Apper, r *mux.Router) *mux.Router {
 	apiColls.HandleFunc("/{alias}/posts", handler.All(newPost)).Methods("POST")
 	apiColls.HandleFunc("/{alias}/posts/{post}", handler.AllReader(fetchPost)).Methods("GET")
 	apiColls.HandleFunc("/{alias}/posts/{post:[a-zA-Z0-9]{10}}", handler.All(existingPost)).Methods("POST")
+	const scopedDeletePath = "/{alias}/posts/{post:[a-zA-Z0-9]+}/delete"
+	apiColls.Path(scopedDeletePath).Handler(csrfProtectCookieAPI(apper.App(), false, handler.All(deleteCollectionPost))).Methods("DELETE")
+	apiColls.Path(scopedDeletePath).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Allow", "DELETE")
+		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+	})
 	apiColls.HandleFunc("/{alias}/posts/{post}/splitcontent", handler.AllReader(handleGetSplitContent)).Methods("GET", "POST")
 	apiColls.HandleFunc("/{alias}/posts/{post}/{property}", handler.AllReader(fetchPostProperty)).Methods("GET")
 	apiColls.HandleFunc("/{alias}/collect", handler.All(addPost)).Methods("POST")
-	apiColls.HandleFunc("/{alias}/pin", handler.All(pinPost)).Methods("POST")
-	apiColls.HandleFunc("/{alias}/unpin", handler.All(pinPost)).Methods("POST")
+	apiColls.Path("/{alias}/pin").Handler(csrfProtectCookieAPI(apper.App(), false, handler.All(pinPost))).Methods("POST")
+	apiColls.Path("/{alias}/unpin").Handler(csrfProtectCookieAPI(apper.App(), false, handler.All(pinPost))).Methods("POST")
 	apiColls.HandleFunc("/{alias}/email/subscribers/export.csv", handler.Download(handleExportEmailSubscriptions, UserLevelUser)).Methods("GET")
 	apiColls.HandleFunc("/{alias}/email/subscribe", handler.All(handleCreateEmailSubscription)).Methods("POST")
 	apiColls.HandleFunc("/{alias}/email/subscribe", handler.All(handleDeleteEmailSubscription)).Methods("DELETE")
@@ -162,7 +173,7 @@ func InitRoutes(apper Apper, r *mux.Router) *mux.Router {
 	posts.HandleFunc("/disperse", handler.All(dispersePost)).Methods("POST")
 	posts.HandleFunc("/{post:[a-zA-Z0-9]+}", handler.AllReader(fetchPost)).Methods("GET")
 	posts.HandleFunc("/{post:[a-zA-Z0-9]+}", handler.All(existingPost)).Methods("POST", "PUT")
-	posts.HandleFunc("/{post:[a-zA-Z0-9]+}", handler.All(deletePost)).Methods("DELETE")
+	posts.Path("/{post:[a-zA-Z0-9]+}").Handler(csrfProtectCookieAPI(apper.App(), true, handler.All(deletePost))).Methods("DELETE")
 	posts.HandleFunc("/{post:[a-zA-Z0-9]+}/{property}", handler.AllReader(fetchPostProperty)).Methods("GET")
 
 	write.HandleFunc("/auth/signup", handler.Web(handleWebSignup, UserLevelNoneRequired)).Methods("POST")
@@ -229,6 +240,72 @@ func csrfProtectForm(key []byte, next http.Handler) http.Handler {
 		}
 		protected.ServeHTTP(w, r)
 	})
+}
+
+// csrfProtectCookieAPI keeps bearer-token API requests compatible while
+// requiring a CSRF token whenever an unsafe API request relies on cookies.
+// A post modify token is itself a scoped bearer credential, so it remains
+// compatible with the anonymous-post API as well.
+func csrfProtection(app *App, next http.Handler) http.Handler {
+	hostURL, err := url.Parse(app.cfg.App.Host)
+	secure := err == nil && strings.EqualFold(hostURL.Scheme, "https")
+	protected := csrf.Protect(app.keys.CSRFKey, csrf.Path("/"), csrf.Secure(secure))(next)
+	if secure {
+		return protected
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		protected.ServeHTTP(w, csrf.PlaintextHTTPRequest(r))
+	})
+}
+
+func csrfProtectCookieAPI(app *App, allowModifyToken bool, next http.Handler) http.Handler {
+	protected := csrfProtection(app, next)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "" || (allowModifyToken && requestPostModifyToken(r) != "") {
+			next.ServeHTTP(w, r)
+			return
+		}
+		protected.ServeHTTP(w, r)
+	})
+}
+
+const maxPostModifyTokenFormSize = 4 << 10
+
+type replayReadCloser struct {
+	io.Reader
+	io.Closer
+}
+
+// requestPostModifyToken reads the anonymous-post bearer credential from the
+// query string or an application/x-www-form-urlencoded request body. The Go
+// standard library does not parse form bodies on DELETE requests, so preserve
+// the body and populate PostForm explicitly for the delete handler. Limit the
+// unauthenticated read because this helper runs before the delete handler.
+func requestPostModifyToken(r *http.Request) string {
+	if token := r.URL.Query().Get("token"); token != "" {
+		return token
+	}
+	if r.PostForm != nil {
+		return r.PostForm.Get("token")
+	}
+	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil || mediaType != "application/x-www-form-urlencoded" || r.Body == nil {
+		return ""
+	}
+	originalBody := r.Body
+	body, err := io.ReadAll(io.LimitReader(originalBody, maxPostModifyTokenFormSize+1))
+	r.Body = replayReadCloser{Reader: io.MultiReader(bytes.NewReader(body), originalBody), Closer: originalBody}
+	if err != nil {
+		return ""
+	}
+	if len(body) > maxPostModifyTokenFormSize {
+		return ""
+	}
+	r.PostForm, err = url.ParseQuery(string(body))
+	if err != nil {
+		return ""
+	}
+	return r.PostForm.Get("token")
 }
 
 func RouteCollections(handler *Handler, r *mux.Router) {

@@ -56,6 +56,7 @@ var (
 )
 
 type writestore interface {
+	GetManagementPosts(collectionID, ownerID int64, page int) ([]managementPost, int, error)
 	CreateUser(*config.Config, *User, string, string) error
 	UpdateUserEmail(keys *key.Keychain, userID int64, email string) error
 	UpdateEncryptedUserEmail(int64, []byte) error

@@ -1,0 +1,43 @@
+{{define "collection-posts"}}
+{{template "header" .}}
+<style>
+#management-posts { width:100%; border-collapse:collapse; text-align:left; }
+#management-posts th, #management-posts td { padding:.7em .5em; height:auto; border-bottom:1px solid #ddd; vertical-align:top; }
+#management-posts td:first-child { overflow-wrap:anywhere; min-width:8em; }
+#management-posts td:last-child { min-width:11em; }
+#management-posts button { font-size:.85em; padding:.3em .5em; margin:.15em; }
+#management-posts time { font-size:.85em; }
+.management-scroll { overflow-x:auto; }
+.management-pagination { display:flex; gap:1em; margin:1em 0; flex-wrap:wrap; }
+</style>
+<div class="content-container snug">
+{{template "collection-breadcrumbs" .}}
+<h1>Posts</h1>
+{{template "collection-nav" (dict "Alias" .Alias "Path" .Path "SingleUser" .SingleUser)}}
+{{if .Silenced}}{{template "user-silenced"}}{{end}}
+<p id="post-list-error" role="alert"></p>
+<div class="management-scroll">
+<table id="management-posts" data-alias="{{.Alias}}" data-csrf-token="{{.CSRFToken}}">
+<thead><tr><th scope="col">Title</th><th scope="col">Publication date (UTC)</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead>
+<tbody>
+{{range .Posts}}
+<tr data-post-id="{{.ID}}">
+<td>{{if .Slug.Valid}}<a href="{{.URL}}">{{if .Title.String}}{{.Title.String}}{{else}}Untitled{{end}}</a>{{else}}{{if .Title.String}}{{.Title.String}}{{else}}Untitled{{end}}{{end}}</td>
+<td><time datetime="{{.Date}}">{{.Date}}</time></td>
+<td>{{if .Pinned.Valid}}Pinned {{end}}{{if .Scheduled}}Scheduled{{end}}</td>
+<td>{{if .Slug.Valid}}<a href="{{.URL}}/edit">Edit</a>{{end}}
+{{if not $.Silenced}}<button type="button" data-operation="{{if .Pinned.Valid}}unpin{{else}}pin{{end}}">{{if .Pinned.Valid}}Unpin{{else}}Pin{{end}}</button>
+<button type="button" data-operation="delete">Delete</button>{{end}}</td>
+</tr>
+{{else}}<tr><td colspan="4">No posts on this page.</td></tr>{{end}}
+</tbody></table></div>
+<nav class="management-pagination" aria-label="Post pages">
+{{if .PreviousPage}}<a rel="prev" href="?p={{.PreviousPage}}">Previous</a>{{end}}
+<span>Page {{.CurrentPage}}</span>
+{{if .NextPage}}<a rel="next" href="?p={{.NextPage}}">Next</a>{{end}}
+{{if and .PreviousPage (not .Posts)}}<a href="?p=1">First page</a>{{end}}
+</nav></div>
+{{template "foot" .}}
+<script src="/js/post-management.js"></script>
+{{template "body-end" .}}
+{{end}}
